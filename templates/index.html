@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>DocAssist</title>
+    <style>
+        body {
+            max-width: 100%;
+            font-family: Verdana;
+	    font-size: 14px;
+            background-color: #d9e2db;
+            /*display: flex;*/
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: auto;
+            padding: 0;
+        }
+
+        .chat-container {
+            width: 1000px;
+            max-width: 100%;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+            margin: auto;
+        }
+
+        .chat-box {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: #e1ffc7;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: #f1f1f1;
+        }
+
+  	p {
+	    line-height: 1.5;
+	    margin: 0;
+	}
+
+        .input-container {
+            display: flex;
+            padding: 10px;
+            background-color: #fafafa;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .loading {
+            color: #aaa;
+            font-style: italic;
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+	<h3 style=" padding:12px; margin-top:0; margin-bottom:0; color:white; display: flex; gap: 12px; text-align: center; width: fit-content;">
+	    <img src="{{ url_for('static', filename='images/BHEL_logo.png')}}" width="50" height="40" alt="BHEL Logo" style="flex-shrink: 0;" />
+	    <span style="color: #334498;">
+	        Bharat Heavy Electricals Limited - HPEP<br>
+	        Ramachandrapuram, Hyderabad - 502032<br>
+	        Human Resource Management
+	    </span>
+	</h3>
+        <h3 style="padding:12px; margin-top:0; margin-bottom:0;">Artificial Intelligence System </h3>
+        <!--<p style="padding: 10px; margin-top:2px; margin-bottom:2px; width:800px; max-width: 100%; ">
+	Available documents : {% for doc in selected_documents %} <span style="border: 1px solid gray; border-radius: 3px; padding: 8px; margin: 2px;">{{doc}}</span> {% endfor %}
+        </p>-->
+    </center>
+    <div class="chat-container">
+        <div class="chat-box" id="chatBox">
+	</div>
+	<div class="loading" id="loadingText" style="display: none;">Generating...</div>
+        <div class="input-container">
+            <input type="text" id="questionInput" placeholder="Enter your question..." onkeydown="checkEnter(event)">
+	    <button id="sendBtn" onclick="askQuestion()" style="display: none;">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chatBox');
+        const loadingText = document.getElementById('loadingText');
+        const questionInput = document.getElementById('questionInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function checkEnter(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();  // Prevent form submission
+                askQuestion();  // Call the ask function when Enter is pressed
+            }
+        }
+
+        function askQuestion() {
+            const question = questionInput.value.trim();
+            if (question === "") return; // Don't send empty questions
+
+            // Show user's message in the chat
+            addMessage(question, 'user');
+
+            // Clear input field after sending
+            questionInput.value = '';
+	    questionInput.disabled = true;
+	    sendBtn.disabled = true;
+	    
+            // Show loading indicator
+            loadingText.style.display = 'block';
+
+            // Call backend to get the answer
+            fetch('http://10.5.20.202:5000/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading text and show the answer
+                    loadingText.style.display = 'none';
+                    addMessage(data.response, 'bot');
+	    	    questionInput.disabled = false;
+	    	    sendBtn.disabled = false;
+                })
+                .catch(error => {
+                    loadingText.style.display = 'none';
+                    addMessage("An error occurred. Please try again.", 'bot');
+                    console.error('Error:', error);
+	    	    questionInput.disabled = false;
+	    	    sendBtn.disabled = false;
+                });
+        }
+
+        function addMessage(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+            messageElement.innerHTML = message;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight; 
+        }
+    </script>
+</body>
+
+</html>
